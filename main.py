@@ -3,7 +3,12 @@ Make it more robust.
 Stop episode once the finger stop at the final position for 50 steps.
 Feature & reward engineering.
 """
+import fire
+import jax.numpy as jnp
+import numpy as np
 from src.env import ArmEnv
+from src.inverseKinematics import inverseKControl
+from src.newtonRaphsonMethod import NewtonControl, Tq
 # from src.rl import DDPG
 
 MAX_EPISODES = 900
@@ -11,11 +16,6 @@ MAX_EP_STEPS = 200
 ON_TRAIN = False
 
 # set env
-env = ArmEnv()
-s_dim = env.state_dim
-a_dim = env.action_dim
-a_bound = env.action_bound
-
 # set RL method (continuous)
 # rl = DDPG(a_dim, s_dim, a_bound)
 
@@ -45,27 +45,48 @@ def train():
                 break
     rl.save()
 
-actions = [(1,1), (0,1)]
-def eval():
+actions = [(1,1,0), (0,1,0.5)]
+
+def eval(x,y):
+    goal = {'x':x, 'y':y, 'l':80}
+    env = ArmEnv(goal)
+    s_dim = env.state_dim
+    a_dim = env.action_dim
+    a_bound = env.action_bound
+
+    # iKControl = inverseKControl(env.arm_info['l'])
+    newtonControl = NewtonControl(env.arm_info['l'])
+
     # rl.restore()
     env.render()
     env.viewer.set_vsync(True)
     s = env.reset()
-    i = 0
     while True:
         env.render()
         # a = rl.choose_action(s)
         try:
-            a = actions[i]
+            actual = env.arm_info["r"]
+            a = newtonControl.get_action(env.goal, actual)
+            print(f"Action : {a}")
+            print(f"Actual : {actual}")
+            print(f"Goal {env.goal}")
             s, r, done = env.step(a)
-            i+=1
-        except IndexError:
-            i=0
-            continue
-if ON_TRAIN:
-    train()
-else:
-    eval()
+            if done:
+                env.render()
+                break
+        except TypeError as e:
+            print(e)
+            raise(Exception)
 
+# if ON_TRAIN:
+#     train()
+# else:
+#     eval()
+if __name__ == "__main__":
 
+    theta_init = jnp.array([np.pi/6, np.pi/6, np.pi/6])
+    ls = jnp.ones(3)*100
+    goal=Tq(theta_init, ls)
+    eval(goal[0], goal[1])
+    # fire.Fire(eval)
 
