@@ -31,8 +31,8 @@ def compareGoal(finger, goal):
 class ArmEnv(object):
     viewer = None
     dt = .01    # refresh rate
-    # action_bound = [-1, 1]
-    action_bound = [0, 2*np.pi]
+    action_bound = [-1, 1]
+    # action_bound = [0, 2*np.pi]
     # goal = {'x': 300., 'y': 300., 'l': 40}
     state_dim = 9
     action_dim = 2

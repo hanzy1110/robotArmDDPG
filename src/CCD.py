@@ -70,10 +70,10 @@ def IK(target, angle, link, max_iter = 10000, err_min = 0.01):
                 angle[i] = (angle[i] + rot_ang)%(2*np.pi)
                 # angle[i] %= 2*np.pi
 
-                # if angle[i] >= (2*np.pi):
-                #     angle[i] = angle[i] - (2*np.pi)
-                # if angle[i] < 0:
-                #     angle[i] = (2*np.pi) + angle[i]
+                if angle[i] >= (1*np.pi):
+                    angle[i] = angle[i] - (1*np.pi)
+                if angle[i] < -np.pi:
+                    angle[i] = (1*np.pi) + angle[i]
                   
         if solved:
             break
