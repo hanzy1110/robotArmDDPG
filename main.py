@@ -9,6 +9,7 @@ import numpy as np
 from src.env import ArmEnv
 # from src.inverseKinematics import inverseKControl
 from src.newtonRaphsonMethod import NewtonControl, Tq
+# from src.CCD2 import CCDControl2
 from src.CCD import CCDControl
 # from src.rl import DDPG
 
@@ -49,14 +50,15 @@ def train():
 actions = [(1,1,0), (0,1,0.5)]
 
 def eval(x,y):
-    goal = {'x':x, 'y':y, 'l':80}
+    goal = {'x':x, 'y':y, 'l':40}
     env = ArmEnv(goal)
     s_dim = env.state_dim
     a_dim = env.action_dim
     a_bound = env.action_bound
 
     # iKControl = inverseKControl(env.arm_info['l'])
-    ccdControl = CCDControl(env.arm_info['l'])
+    # newtonC = NewtonControl(env.arm_info, env.center_coord)
+    ccdControl = CCDControl(env.arm_info['l'], env.center_coord)
 
     # rl.restore()
     env.render()
@@ -85,9 +87,9 @@ def eval(x,y):
 #     eval()
 if __name__ == "__main__":
 
-    theta_init = jnp.array([np.pi/1, np.pi/6, np.pi/6])
+    theta_init = jnp.array([np.pi/8, np.pi/10, np.pi/16])
     ls = jnp.ones(3)*100
-    goal=Tq(theta_init, ls)
+    goal=Tq(theta_init, ls)*0.8
     eval(goal[0], goal[1])
     # fire.Fire(eval)
 

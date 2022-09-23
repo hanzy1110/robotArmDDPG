@@ -1,6 +1,22 @@
 import numpy as np
 import pyglet
 
+def shoulder(angle, link):
+    return np.array( [ link[0]*np.cos(angle[0]), link[0]*np.sin(angle[0])] )
+
+def elbow(angle, link):
+    return np.array( [ link[0]*np.cos(angle[0])+link[1]*np.cos(angle[:-1].sum()),
+                       link[0]*np.sin(angle[0])+link[1]*np.sin(angle[:-1].sum()),])
+
+def wrist(angle, link):
+    return np.array( [ link[0]*np.cos(angle[0]) + link[1]*np.cos(angle[:-1].sum()) + link[2]*np.cos(angle.sum()),
+                       link[0]*np.sin(angle[0]) + link[1]*np.sin(angle[:-1].sum()) + link[2]*np.sin(angle.sum()),])
+
+def wrist_render(angle, link):
+    return np.array( [ link[0]*np.cos(angle[0]) + link[1]*np.cos(angle[1:].sum()) + link[2]*np.cos(angle[:-1].sum()),
+                      link[0]*np.sin(angle[0]) + link[1]*np.sin(angle[1:].sum()) + link[2]*np.sin(angle[:-1].sum()),])
+
+
 def compareGoal(finger, goal):
     print(f"finger = {finger}")
     print(f"goal = {goal}")
@@ -14,8 +30,9 @@ def compareGoal(finger, goal):
 
 class ArmEnv(object):
     viewer = None
-    dt = .1    # refresh rate
-    action_bound = [-1, 1]
+    dt = .01    # refresh rate
+    # action_bound = [-1, 1]
+    action_bound = [0, 2*np.pi]
     # goal = {'x': 300., 'y': 300., 'l': 40}
     state_dim = 9
     action_dim = 2
@@ -36,16 +53,19 @@ class ArmEnv(object):
 
     def step(self, action):
         done = False
-        action = np.clip(action, *self.action_bound)
-        self.arm_info['r'] += action * self.dt
+        # action = np.clip(action, *self.action_bound)
+        self.arm_info['r'] += action *  self.dt
         self.arm_info['r'] %= np.pi * 2    # normalize
 
         (a1l, a2l, a3l) = self.arm_info['l']  # radius, arm length
         (a1r, a2r, a3r) = self.arm_info['r']  # radian, angle
         a1xy = self.center_coord
-        a1xy_ = np.array([np.cos(a1r), np.sin(a1r)]) * a1l + a1xy  # a1 end and a2 start (x1, y1)
-        a2xy_ = np.array([np.cos(a1r + a2r), np.sin(a1r + a2r)]) * a2l + a1xy_  # a2 end (x2, y2)
-        finger = np.array([np.cos(a2r + a3r), np.sin(a2r + a3r)]) * a3l + a2xy_  # a2 end (x2, y2)
+        # a1xy_ = np.array([np.cos(a1r), np.sin(a1r)]) * a1l + a1xy  # a1 end and a2 start (x1, y1)
+        # a2xy_ = np.array([np.cos(a1r + a2r), np.sin(a1r + a2r)]) * a2l + a1xy_  # a2 end (x2, y2)
+        # finger = np.array([np.cos(a1r + a2r + a3r), np.sin(a1r + a2r + a3r)]) * a3l + a2xy_  # a2 end (x2, y2)
+        a1xy_ = shoulder(self.arm_info['r'], self.arm_info['l']) + a1xy
+        a2xy_ = elbow(self.arm_info['r'], self.arm_info['l']) + a1xy
+        finger = wrist(self.arm_info['r'],self.arm_info['l']) + a1xy
         # finger = np.array([np.cos(a3r + a4r), np.sin(a3r + a4r)]) * a4l + a3xy_  # a2 end (x2, y2)
 
         # normalize features
@@ -59,7 +79,7 @@ class ArmEnv(object):
             r += 1.
             self.on_goal += 1
             print(f"On goal: {self.on_goal}")
-            if self.on_goal >= 1:
+            if self.on_goal >= 40000:
                 done = True
         else:
             # pass
@@ -84,14 +104,13 @@ class ArmEnv(object):
         (a1l, a2l, a3l) = self.arm_info['l']  # radius, arm length
         (a1r, a2r, a3r) = self.arm_info['r']  # radian, angle
         a1xy = self.center_coord
-        a1xy_ = np.array([np.cos(a1r), np.sin(a1r)]) * a1l + a1xy  # a1 end and a2 start (x1, y1)
-        a2xy_ = np.array([np.cos(a1r + a2r), np.sin(a1r + a2r)]) * a2l + a1xy_  # a2 end (x2, y2)
-        finger = np.array([np.cos(a2r + a3r), np.sin(a2r + a3r)]) * a3l + a2xy_  # a2 end (x2, y2)
+        # a1xy_ = np.array([np.cos(a1r), np.sin(a1r)]) * a1l + a1xy  # a1 end and a2 start (x1, y1)
+        # a2xy_ = np.array([np.cos(a1r + a2r), np.sin(a1r + a2r)]) * a2l + a1xy_  # a2 end (x2, y2)
+        # finger = np.array([np.cos(a1r + a2r + a3r), np.sin(a1r + a2r + a3r)]) * a3l + a2xy_  # a2 end (x2, y2)
+        a1xy_ = shoulder(self.arm_info['r'], self.arm_info['l']) + a1xy
+        a2xy_ = elbow(self.arm_info['r'], self.arm_info['l']) + a1xy
+        finger = wrist(self.arm_info['r'],self.arm_info['l']) + a1xy
         # finger = np.array([np.cos(a3r + a4r), np.sin(a3r + a4r)]) * a4l + a3xy_  # a2 end (x2, y2)
-
-        # normalize features
-        dist1 = [(self.goal['x'] - a1xy_[0]) / 400, (self.goal['y'] - a1xy_[1]) / 400]
-        dist2 = [(self.goal['x'] - finger[0]) / 400, (self.goal['y'] - finger[1]) / 400]
 
         # normalize features
         dist1 = [(self.goal['x'] - a1xy_[0])/400, (self.goal['y'] - a1xy_[1])/400]
@@ -181,12 +200,17 @@ class Viewer(pyglet.window.Window):
         # (a1r, a2r) = self.arm_info['r']     # radian, angle
         a1xy = self.center_coord            # a1 start (x0, y0)
 
-        (a1l, a2l, a3l) = self.arm_info['l']  # radius, arm length
-        (a1r, a2r, a3r) = self.arm_info['r']  # radian, angle
-        a1xy_ = np.array([np.cos(a1r), np.sin(a1r)]) * a1l + a1xy  # a1 end and a2 start (x1, y1)
-        a2xy_ = np.array([np.cos(a1r + a2r), np.sin(a1r + a2r)]) * a2l + a1xy_  # a2 end (x2, y2)
-        a3xy_ = np.array([np.cos(a2r + a3r), np.sin(a2r + a3r)]) * a3l + a2xy_  # a2 end (x2, y2)
+        # (a1l, a2l, a3l) = self.arm_info['l']  # radius, arm length
+        # (a1r, a2r, a3r) = self.arm_info['r']  # radian, angle
+        # a1xy_ = np.array([np.cos(a1r), np.sin(a1r)]) * a1l + a1xy  # a1 end and a2 start (x1, y1)
+        # a2xy_ = np.array([np.cos(a1r + a2r), np.sin(a1r + a2r)]) * a2l + a1xy_  # a2 end (x2, y2)
+        # a3xy_ = np.array([np.cos(a2r + a3r), np.sin(a2r + a3r)]) * a3l + a2xy_  # a2 end (x2, y2)
         # a4xy_ = np.array([np.cos(a3r + a4r), np.sin(a3r + a4r)]) * a4l + a3xy_  # a2 end (x2, y2)
+
+        a1xy_ = shoulder(self.arm_info['r'], self.arm_info['l']) + a1xy
+        a2xy_ = elbow(self.arm_info['r'], self.arm_info['l']) + a1xy
+        a3xy_ = wrist_render(self.arm_info['r'], self.arm_info['l']) + a1xy
+
         a1tr, a2tr, a3tr = np.pi / 2 - self.arm_info['r'][0], \
             np.pi / 2 - self.arm_info['r'][0:2].sum(), \
             np.pi / 2 - self.arm_info['r'][1:].sum(), \
@@ -228,9 +252,9 @@ class Viewer(pyglet.window.Window):
 
     # convert the mouse coordinate to goal's coordinate
     def on_mouse_motion(self, x, y, dx, dy):
-        pass
-        # self.goal_info['x'] = x
-        # self.goal_info['y'] = y
+        # pass
+        self.goal_info['x'] = x
+        self.goal_info['y'] = y
 
 
 if __name__ == '__main__':

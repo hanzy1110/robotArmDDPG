@@ -35,7 +35,7 @@ def IK(target, angle, link, max_iter = 10000, err_min = 0.01):
         for i in range(len(link)-1, -1, -1):
             P = FK(angle, link)
             end_to_target = target - P[-1][:3, 3]
-            err_end_to_target = np.linalg.norm(end_to_target)/np.linalg.norm(target)
+            err_end_to_target = np.linalg.norm(end_to_target)
 
             # print(f"err_end_to_target: {err_end_to_target}")
             if err_end_to_target < err_min:
@@ -70,36 +70,39 @@ def IK(target, angle, link, max_iter = 10000, err_min = 0.01):
                 angle[i] = (angle[i] + rot_ang)%(2*np.pi)
                 # angle[i] %= 2*np.pi
 
-                if angle[i] >= (2*np.pi):
-                    angle[i] = angle[i] - (2*np.pi)
-                if angle[i] < 0:
-                    angle[i] = (2*np.pi) + angle[i]
+                # if angle[i] >= (2*np.pi):
+                #     angle[i] = angle[i] - (2*np.pi)
+                # if angle[i] < 0:
+                #     angle[i] = (2*np.pi) + angle[i]
                   
         if solved:
             break
             
-    if not solved:
-        print("not converged!")
     return angle, err_end_to_target, solved, loop
 
 class CCDControl:
-    def __init__(self, ls):
+    def __init__(self, ls, center_coord):
         self.ls = ls
+        self.center_coord = center_coord
+
+    def correctGoal(self, goal):
+        g = np.array([goal['x'], goal['y'], 0])
+        g[0] -= self.center_coord[0]
+        g[1] -= self.center_coord[1]
+        return g
 
     def get_angles(self, goal, actual):
         angle, err_end_to_target, solved, loop = IK(goal, actual, self.ls)
         tApprox = FK(angle, self.ls)
-        print({'Error: ': err_end_to_target, 'iters: ':loop})
+        print({'Error: ': err_end_to_target, 'iters: ':loop, 'solved':solved})
         return angle, tApprox
 
     def get_action(self,goal, actual, alpha=0.1):
-        goal = np.array([goal['x'], goal['y'], 0])
+        goal = self.correctGoal(goal)
         # actualDegs = np.rad2deg(actual)
         angles, tApprox = self.get_angles(goal, actual)
         # angles = np.deg2rad(np.array(angles))
         print(f"Goal {goal}")
-        print(f"ApproxPoint = {tApprox}, Solution = {angles} ")
+        print(f"ApproxPoint = {tApprox[-1][:-1, -1]}, Solution = {angles} ")
         action = actual-angles
         return actual + alpha*action
-
-
