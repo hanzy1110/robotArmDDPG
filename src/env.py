@@ -72,8 +72,8 @@ class ArmEnv(object):
     def reset(self):
         # self.goal['x'] = np.random.rand()*400.
         # self.goal['y'] = np.random.rand()*400.
-        # self.arm_info['r'] = 1 * np.pi * np.random.rand(self.n_arms)
-        self.arm_info['r'] = 1 * np.pi/2
+        self.arm_info['r'] = 2 * np.pi * np.random.rand(self.n_arms)
+        # self.arm_info['r'] = 1 * np.pi/2
         self.on_goal = 0
         # (a1l, a2l) = self.arm_info['l']  # radius, arm length
         # (a1r, a2r) = self.arm_info['r']  # radian, angle
@@ -135,19 +135,19 @@ class Viewer(pyglet.window.Window):
                      250, 300,
                      260, 300,
                      260, 250]),
-            ('c3B', (249, 86, 86) * 4,))    # color
+            ('c3B', (250, 22, 86) * 4,))    # color
         self.arm2 = self.batch.add(
             4, pyglet.gl.GL_QUADS, None,
             ('v2f', [100, 150,              # location
                      100, 160,
                      200, 160,
-                     200, 150]), ('c3B', (249, 86, 86) * 4,))
+                     200, 150]), ('c3B', (100, 86, 86) * 4,))
         self.arm3 = self.batch.add(
             4, pyglet.gl.GL_QUADS, None,
             ('v2f', [350, 350,              # location
                      300, 360,
                      400, 460,
-                     400, 450]), ('c3B', (249, 86, 86) * 4,))
+                     400, 450]), ('c3B', (10, 32, 86) * 4,))
         # self.arm4 = self.batch.add(
         #     4, pyglet.gl.GL_QUADS, None,
         #     ('v2f', [400, 450,              # location

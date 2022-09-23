@@ -7,8 +7,9 @@ import fire
 import jax.numpy as jnp
 import numpy as np
 from src.env import ArmEnv
-from src.inverseKinematics import inverseKControl
+# from src.inverseKinematics import inverseKControl
 from src.newtonRaphsonMethod import NewtonControl, Tq
+from src.CCD import CCDControl
 # from src.rl import DDPG
 
 MAX_EPISODES = 900
@@ -55,7 +56,7 @@ def eval(x,y):
     a_bound = env.action_bound
 
     # iKControl = inverseKControl(env.arm_info['l'])
-    newtonControl = NewtonControl(env.arm_info['l'])
+    ccdControl = CCDControl(env.arm_info['l'])
 
     # rl.restore()
     env.render()
@@ -66,7 +67,7 @@ def eval(x,y):
         # a = rl.choose_action(s)
         try:
             actual = env.arm_info["r"]
-            a = newtonControl.get_action(env.goal, actual)
+            a = ccdControl.get_action(env.goal, actual)
             print(f"Action : {a}")
             print(f"Actual : {actual}")
             print(f"Goal {env.goal}")
@@ -84,7 +85,7 @@ def eval(x,y):
 #     eval()
 if __name__ == "__main__":
 
-    theta_init = jnp.array([np.pi/6, np.pi/6, np.pi/6])
+    theta_init = jnp.array([np.pi/1, np.pi/6, np.pi/6])
     ls = jnp.ones(3)*100
     goal=Tq(theta_init, ls)
     eval(goal[0], goal[1])
